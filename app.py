@@ -2,96 +2,100 @@ import streamlit as st
 import sympy as sp
 import random
 
-st.set_page_config(page_title="Profe Karina: Derivadas Paso a Paso", layout="centered")
+st.set_page_config(page_title="Cálculo Pro: Reglas de Derivación", layout="wide")
 
-# --- LÓGICA DEL QUIZ (Funciones tipo Arquitectura) ---
+# --- LÓGICA DEL QUIZ ---
 def generar_ejercicio():
     x = sp.symbols('x')
-    a = random.randint(2, 5)
-    # Mezclamos polinómicas, exponenciales y trigonométricas
-    tipo = random.choice(['poly', 'exp', 'sin', 'cos'])
-    
-    if tipo == 'poly':
-        f = a * x**random.randint(2, 4)
-    elif tipo == 'exp':
-        f = sp.exp(a * x)
-    elif tipo == 'sin':
-        f = sp.sin(x / a)
-    else:
-        f = sp.cos(a * x)
-        
+    a = random.randint(2, 6)
+    # Funciones que invitan a usar reglas generalizadas
+    opciones = [
+        sp.exp(a*x),           # e^u
+        sp.sin(x/a),           # sin(u)
+        a*x**3 - (a-1)*x,      # Suma/Resta
+        (x**2) * sp.exp(x),    # Producto
+        x / (x + a)            # División
+    ]
+    f = random.choice(opciones)
     df = sp.diff(f, x)
     return f, df
 
-# Inicializar estados
 if 'ejercicio' not in st.session_state:
     st.session_state.ejercicio, st.session_state.solucion = generar_ejercicio()
-if 'aciertos' not in st.session_state:
-    st.session_state.aciertos = 0
 
 # --- INTERFAZ ---
-st.title("🎓 Academia de Derivadas")
-st.subheader("Facultad de Arquitectura | Profe: Karina Arriola")
+st.title("🏛️ Tutorial de Técnicas de Derivación")
+st.caption("Docente: Karina Arriola | Análisis de Estructuras")
 
-tab1, tab2 = st.tabs(["🔍 Calculadora Paso a Paso", "📝 Quiz con Calificación"])
+tab1, tab2 = st.tabs(["📝 Solucionador Detallado", "🎮 Quiz de Técnicas"])
 
 with tab1:
-    st.header("Analizador de Derivadas")
-    st.write("Escribe una función para ver su derivada explicada.")
-    
-    user_f_raw = st.text_input("Ingresa f(x):", "exp(3*x)", help="Usa exp(x) para e^x, sin(x) para seno y cos(x) para coseno.")
+    st.header("Analizador de Reglas Aplicadas")
+    u_f_text = st.text_input("Escribe la función a analizar:", "x * exp(x)")
     
     try:
         x = sp.symbols('x')
-        # Limpieza de entrada
-        f_user = sp.sympify(user_f_raw.replace("^", "**"))
-        df_user = sp.diff(f_user, x)
+        f = sp.sympify(u_f_text.replace("^", "**"))
         
-        st.markdown("### 📝 Desarrollo:")
-        st.write("1. *Función original identificada:*")
-        st.latex(f"f(x) = {sp.latex(f_user)}")
+        st.markdown("### 🔍 Desglose de la Solución")
         
-        st.write("2. *Aplicando reglas de derivación:*")
-        # Aquí mostramos el resultado directo, pero formateado
-        st.latex(f"\\frac{{d}}{{dx}}[{sp.latex(f_user)}]")
+        # Identificación de la técnica
+        if f.is_Add:
+            regla = "Suma o Resta: \\frac{d}{dx}[u \pm v] = u' \pm v'"
+        elif f.is_Mul and any(arg.has(x) for arg in f.args if len([a for a in f.args if a.has(x)]) > 1):
+            regla = "Producto: \\frac{d}{dx}[u \\cdot v] = u'v + uv'"
+        elif f.is_Pow and f.exp.is_constant:
+            regla = "Potencia Generalizada: \\frac{d}{dx}[u^n] = n \\cdot u^{n-1} \\cdot u'"
+        elif "exp" in str(f):
+            regla = "Exponencial Generalizada: \\frac{d}{dx}[e^u] = e^u \\cdot u'"
+        elif "sin" in str(f) or "cos" in str(f):
+            regla = "Trigonométrica Generalizada: \\frac{d}{dx}[\\sin(u)] = \\cos(u) \\cdot u'"
+        else:
+            regla = "Regla Básica de Derivación"
+
+        st.warning(f"*Regla a aplicar:* ${regla}$")
         
-        st.success("*Resultado Final:*")
-        st.latex(f"f'(x) = {sp.latex(df_user)}")
+        # Mostrar el paso a paso simbólico
+        st.write("1. *Identificamos los componentes:*")
+        st.latex(f"f(x) = {sp.latex(f)}")
         
+        st.write("2. *Aplicamos la técnica:*")
+        pasos = sp.diff(f, x)
+        st.latex(f"f'(x) = {sp.latex(pasos)}")
+        
+        st.success("*Resultado Simplificado:*")
+        st.latex(f"f'(x) = {sp.latex(sp.simplify(pasos))}")
+
     except:
-        st.error("Error en el formato. Ejemplo: 5*x**2 o exp(2*x)")
+        st.error("Ingresa una función válida. Ejemplo: (x**2)/(x+1)")
 
 with tab2:
-    st.header("¿Cuánto sabes de derivadas?")
-    
-    # Marcador de calificación
-    st.sidebar.metric("Aciertos Totales", st.session_state.aciertos)
-    
-    st.write("Calcula la derivada de la siguiente función:")
+    st.header("🎮 Practica las Técnicas")
+    st.write("Calcula la derivada aplicando la regla correspondiente:")
     st.latex(f"f(x) = {sp.latex(st.session_state.ejercicio)}")
     
-    respuesta_usuario = st.text_input("Escribe tu respuesta f'(x):", key="quiz_input")
+    ans = st.text_input("Tu respuesta f'(x):")
     
-    col1, col2 = st.columns(2)
-    
-    if col1.button("Comprobar respuesta"):
+    if st.button("Validar"):
         try:
-            # Convertir respuesta a Sympy para comparar lógicamente
-            user_df = sp.sympify(respuesta_usuario.replace("^", "**"))
-            if sp.simplify(user_df - st.session_state.solucion) == 0:
-                st.success("✨ ¡Excelente! Respuesta correcta.")
-                st.session_state.aciertos += 1
+            u_ans = sp.sympify(ans.replace("^", "**"))
+            if sp.simplify(u_ans - st.session_state.solucion) == 0:
+                st.success("¡Excelente manejo de las reglas!")
                 st.balloons()
             else:
-                st.error(f"Casi... La respuesta correcta era:")
+                st.error("Revisa la aplicación de la regla. La solución es:")
                 st.latex(sp.latex(st.session_state.solucion))
         except:
-            st.warning("Usa el formato matemático correcto (ej. 3*exp(3*x) o 2*x)")
-
-    if col2.button("Siguiente ejercicio ➡️"):
+            st.warning("Formato no reconocido.")
+    
+    if st.button("Siguiente Reto"):
         st.session_state.ejercicio, st.session_state.solucion = generar_ejercicio()
         st.rerun()
 
-st.sidebar.markdown("---")
-st.sidebar.write("👩‍🏫 *Consejo de Karina:*")
-st.sidebar.info("Para funciones compuestas como $e^{ax}$, recuerda la regla de la cadena: la derivada es $a \\cdot e^{ax}$.")
+# --- BARRA LATERAL EDUCATIVA ---
+with st.sidebar:
+    st.header("📋 Formulario de Referencia")
+    st.latex(r"\frac{d}{dx}[u \cdot v] = u'v + uv'")
+    st.latex(r"\frac{d}{dx}[\frac{u}{v}] = \frac{u'v - uv'}{v^2}")
+    st.latex(r"\frac{d}{dx}[e^u] = e^u \cdot u'")
+    st.latex(r"\frac{d}{dx}[\sin(u)] = \cos(u) \cdot u'")
