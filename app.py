@@ -1,101 +1,113 @@
 import streamlit as st
 import sympy as sp
-import random
+import numpy as np
 
-st.set_page_config(page_title="Cálculo Pro: Reglas de Derivación", layout="wide")
+st.set_page_config(page_title="Cátedra Arriola: Análisis de Derivadas", layout="wide")
 
-# --- LÓGICA DEL QUIZ ---
-def generar_ejercicio():
+st.title("🏛️ Tutor de Derivación Detallada")
+st.subheader("Facultad de Arquitectura | Profe Karina Arriola")
+
+# --- ENTRADA ---
+u_input = st.text_input("Ingresa la función para desglosar paso a paso:", "x**2 * sin(x)")
+
+try:
     x = sp.symbols('x')
-    a = random.randint(2, 6)
-    # Funciones que invitan a usar reglas generalizadas
-    opciones = [
-        sp.exp(a*x),           # e^u
-        sp.sin(x/a),           # sin(u)
-        a*x**3 - (a-1)*x,      # Suma/Resta
-        (x**2) * sp.exp(x),    # Producto
-        x / (x + a)            # División
-    ]
-    f = random.choice(opciones)
-    df = sp.diff(f, x)
-    return f, df
-
-if 'ejercicio' not in st.session_state:
-    st.session_state.ejercicio, st.session_state.solucion = generar_ejercicio()
-
-# --- INTERFAZ ---
-st.title("🏛️ Tutorial de Técnicas de Derivación")
-st.caption("Docente: Karina Arriola | Análisis de Estructuras")
-
-tab1, tab2 = st.tabs(["📝 Solucionador Detallado", "🎮 Quiz de Técnicas"])
-
-with tab1:
-    st.header("Analizador de Reglas Aplicadas")
-    u_f_text = st.text_input("Escribe la función a analizar:", "x * exp(x)")
+    h = sp.sympify(u_input.replace("^", "**"))
     
-    try:
-        x = sp.symbols('x')
-        f = sp.sympify(u_f_text.replace("^", "**"))
+    st.markdown("---")
+    st.write("### 🔍 Desglose de la Solución")
+
+    # --- LÓGICA DE IDENTIFICACIÓN ---
+    # CASO PRODUCTO
+    if h.is_Mul and len([arg for arg in h.args if arg.has(x)]) > 1:
+        args = [arg for arg in h.args if arg.has(x)]
+        f = args[0]
+        g = sp.Mul(*args[1:])
+        df = sp.diff(f, x)
+        dg = sp.diff(g, x)
         
-        st.markdown("### 🔍 Desglose de la Solución")
+        st.info("*Regla Identificada:* Regla del Producto")
+        st.latex(r"\text{Técnica: } [f(x) \cdot g(x)]' = f'(x)g(x) + f(x)g'(x)")
         
-        # Identificación de la técnica
-        if f.is_Add:
-            regla = "Suma o Resta: \\frac{d}{dx}[u \pm v] = u' \pm v'"
-        elif f.is_Mul and any(arg.has(x) for arg in f.args if len([a for a in f.args if a.has(x)]) > 1):
-            regla = "Producto: \\frac{d}{dx}[u \\cdot v] = u'v + uv'"
-        elif f.is_Pow and f.exp.is_constant:
-            regla = "Potencia Generalizada: \\frac{d}{dx}[u^n] = n \\cdot u^{n-1} \\cdot u'"
-        elif "exp" in str(f):
-            regla = "Exponencial Generalizada: \\frac{d}{dx}[e^u] = e^u \\cdot u'"
-        elif "sin" in str(f) or "cos" in str(f):
-            regla = "Trigonométrica Generalizada: \\frac{d}{dx}[\\sin(u)] = \\cos(u) \\cdot u'"
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("*Componentes:*")
+            st.latex(f"f(x) = {sp.latex(f)}")
+            st.latex(f"g(x) = {sp.latex(g)}")
+        with col2:
+            st.write("*Derivadas individuales:*")
+            st.latex(f"f'(x) = {sp.latex(df)}")
+            st.latex(f"g'(x) = {sp.latex(dg)}")
+            
+        st.write("*Ensamblaje de la solución:*")
+        st.latex(f"h'(x) = ({sp.latex(df)}) \cdot ({sp.latex(g)}) + ({sp.latex(f)}) \cdot ({sp.latex(dg)})")
+
+    # CASO COCIENTE
+    elif h.is_Pow and h.exp.is_negative or " / " in u_input or isinstance(h, sp.core.mul.Mul) and any(isinstance(arg, sp.core.power.Pow) and arg.exp.is_negative for arg in h.args):
+        # Simplificación para detectar cociente
+        num, den = sp.fraction(h)
+        f = num
+        g = den
+        df = sp.diff(f, x)
+        dg = sp.diff(g, x)
+
+        st.info("*Regla Identificada:* Regla del Cociente")
+        st.latex(r"\text{Técnica: } \left[\frac{f(x)}{g(x)}\right]' = \frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("*Componentes:*")
+            st.latex(f"f(x) = {sp.latex(f)}")
+            st.latex(f"g(x) = {sp.latex(g)}")
+        with col2:
+            st.write("*Derivadas individuales:*")
+            st.latex(f"f'(x) = {sp.latex(df)}")
+            st.latex(f"g'(x) = {sp.latex(dg)}")
+
+        st.write("*Ensamblaje de la solución:*")
+        st.latex(f"h'(x) = \\frac{({sp.latex(df)})({sp.latex(g)}) - ({sp.latex(f)})({sp.latex(dg)})}{({sp.latex(g)})^2}")
+
+    # CASO FUNCIÓN GENERALIZADA (Seno, Coseno, Exponencial)
+    elif any(func in str(h) for func in ["sin", "cos", "exp"]):
+        # Extraemos el argumento interno como g(x)
+        main_func = h.func
+        g = h.args[0]
+        dg = sp.diff(g, x)
+        
+        if "exp" in str(h):
+            st.info("*Regla Identificada:* Exponencial Generalizada")
+            st.latex(r"\text{Técnica: } [e^{g(x)}]' = e^{g(x)} \cdot g'(x)")
+            f_expr = "e^{g(x)}"
+        elif "sin" in str(h):
+            st.info("*Regla Identificada:* Trigonométrica (Seno) Generalizada")
+            st.latex(r"\text{Técnica: } [\sin(g(x))]' = \cos(g(x)) \cdot g'(x)")
+            f_expr = r"\sin(g(x))"
         else:
-            regla = "Regla Básica de Derivación"
+            st.info("*Regla Identificada:* Trigonométrica (Coseno) Generalizada")
+            st.latex(r"\text{Técnica: } [\cos(g(x))]' = -\sin(g(x)) \cdot g'(x)")
+            f_expr = r"\cos(g(x))"
 
-        st.warning(f"*Regla a aplicar:* ${regla}$")
-        
-        # Mostrar el paso a paso simbólico
-        st.write("1. *Identificamos los componentes:*")
-        st.latex(f"f(x) = {sp.latex(f)}")
-        
-        st.write("2. *Aplicamos la técnica:*")
-        pasos = sp.diff(f, x)
-        st.latex(f"f'(x) = {sp.latex(pasos)}")
-        
-        st.success("*Resultado Simplificado:*")
-        st.latex(f"f'(x) = {sp.latex(sp.simplify(pasos))}")
+        st.write("*Identificación:*")
+        st.latex(f"g(x) = {sp.latex(g)} \\implies g'(x) = {sp.latex(dg)}")
+        st.write("*Aplicando la técnica:*")
+        resultado_paso = sp.diff(h, x)
+        st.latex(f"h'(x) = {sp.latex(resultado_paso)}")
 
-    except:
-        st.error("Ingresa una función válida. Ejemplo: (x**2)/(x+1)")
+    else:
+        st.info("*Regla Identificada:* Regla de la Potencia / Suma")
+        st.write("Se aplica la derivada término a término.")
+        st.latex(f"h'(x) = {sp.latex(sp.diff(h, x))}")
 
-with tab2:
-    st.header("🎮 Practica las Técnicas")
-    st.write("Calcula la derivada aplicando la regla correspondiente:")
-    st.latex(f"f(x) = {sp.latex(st.session_state.ejercicio)}")
-    
-    ans = st.text_input("Tu respuesta f'(x):")
-    
-    if st.button("Validar"):
-        try:
-            u_ans = sp.sympify(ans.replace("^", "**"))
-            if sp.simplify(u_ans - st.session_state.solucion) == 0:
-                st.success("¡Excelente manejo de las reglas!")
-                st.balloons()
-            else:
-                st.error("Revisa la aplicación de la regla. La solución es:")
-                st.latex(sp.latex(st.session_state.solucion))
-        except:
-            st.warning("Formato no reconocido.")
-    
-    if st.button("Siguiente Reto"):
-        st.session_state.ejercicio, st.session_state.solucion = generar_ejercicio()
-        st.rerun()
+    # RESULTADO FINAL
+    st.success("### ✅ Resultado Simplificado Final")
+    st.latex(f"h'(x) = {sp.latex(sp.simplify(sp.diff(h, x)))}")
 
-# --- BARRA LATERAL EDUCATIVA ---
+except Exception as e:
+    st.error("Error al procesar la función. Asegúrate de usar '*' para multiplicar (ej. 5*x).")
+
+# --- BARRA LATERAL ---
 with st.sidebar:
-    st.header("📋 Formulario de Referencia")
-    st.latex(r"\frac{d}{dx}[u \cdot v] = u'v + uv'")
-    st.latex(r"\frac{d}{dx}[\frac{u}{v}] = \frac{u'v - uv'}{v^2}")
-    st.latex(r"\frac{d}{dx}[e^u] = e^u \cdot u'")
-    st.latex(r"\frac{d}{dx}[\sin(u)] = \cos(u) \cdot u'")
+    st.header("📖 Glosario de Técnicas")
+    st.write("*Regla del Producto:* Para funciones que se multiplican.")
+    st.write("*Regla del Cociente:* Para funciones en fracción.")
+    st.write("*Función Generalizada:* Cuando el argumento no es simplemente 'x'.")
