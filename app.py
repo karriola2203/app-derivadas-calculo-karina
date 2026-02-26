@@ -151,46 +151,4 @@ try:
     st.latex(f"f'(x) = {sp.latex(sp.simplify(res_final))}")
 
 except Exception as e:
-    st.error("Error en la lectura de la función. Revisa que uses '*' para multiplicar.")
-   # --- SECCIÓN DE EXPORTACIÓN PARA FORO BLACKBOARD UPC ---
-st.markdown("---")
-st.write("### 🎓 Formato para Entrega en Foro")
-
-# Generamos un texto estructurado que no se corta
-desarrollo_completo = f"""INFORME DE DERIVACIÓN - CÁTEDRA ARRIOLA
---------------------------------------------------
-FUNCIÓN ORIGINAL: f(x) = {h}
---------------------------------------------------
-DESARROLLO PASO A PASO:
-"""
-
-for i, t in enumerate(terminos):
-    coeff, _ = t.as_coeff_Mul()
-    op = "Resta" if coeff < 0 else "Suma"
-    desarrollo_completo += f"\n> Término {i+1} ({op}): {sp.latex(t)}"
-    desarrollo_completo += f"\n  Derivada parcial: {sp.latex(sp.diff(t, x))}\n"
-
-desarrollo_completo += f"""
---------------------------------------------------
-RESULTADO FINAL:
-f'(x) = {sp.latex(sp.diff(h, x))}
-
-SIMPLIFICACIÓN:
-f'(x) = {sp.latex(sp.simplify(sp.diff(h, x)))}
---------------------------------------------------
-Generado por: Tutor de Cálculo - Facultad de Arquitectura UPC
-"""
-
-# Mostramos el desarrollo en un área de texto que el alumno puede copiar fácilmente
-st.text_area("Copia el contenido de este cuadro para pegarlo en tu foro:", 
-             value=desarrollo_completo, height=300)
-
-st.success("☝️ **Instrucción para el alumno:** Selecciona todo el texto del cuadro de arriba, cópialo y pégalo directamente en el Foro de Blackboard. Esto asegura que la Profe Karina reciba tu proceso completo sin recortes.")
-
-# Botón de descarga corregido para que no pese y contenga TODO
-st.download_button(
-    label="📥 Descargar Reporte Completo (.txt)",
-    data=desarrollo_completo,
-    file_name="entrega_derivadas_upc.txt",
-    mime="text/plain"
-)
+    st.error("Error en la lectura de la función. Revisa que uses '*' para multiplicar.")  
