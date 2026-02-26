@@ -4,42 +4,38 @@ import sympy as sp
 # Configuración de la página
 st.set_page_config(page_title="Cátedra Arriola: Cálculo de Derivadas", layout="wide")
 
-# Estilo para mejorar la apariencia del editor
-st.markdown("""
-    <style>
-    .stTextInput > div > div > input {
-        font-size: 24px;
-        color: #1E3A8A;
-        font-family: 'Consolas', monospace;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
 st.title("🏛️ Tutor de Derivación Detallada")
 st.subheader("Facultad de Arquitectura | Profe Karina Arriola")
 
-# --- SECCIÓN DEL EDITOR (ENTRADA) ---
+# --- BLOQUE 1: EDITOR Y VISTA PREVIA ---
 st.write("### ✍️ Editor de Funciones")
-u_input = st.text_input("Digita la función que deseas derivar:", "x**2 * sin(x)")
-
-# Limpieza y preparación de la variable x
-x = sp.symbols('x')
-
-try:
-    # Procesar la entrada del estudiante
-    expr_clean = u_input.replace("^", "**")
-    h = sp.sympify(expr_clean)
+with st.container():
+    # El estudiante digita aquí
+    u_input = st.text_input("Ingresa la función (ej. x**2 * sin(x)):", value="x**2 * sin(x)")
     
-    # --- VISTA PREVIA (Para que el estudiante verifique lo que escribió) ---
-    st.info("#### 👁️ Vista Previa de tu función:")
-    st.latex(f"f(x) = {sp.latex(h)}")
+    x = sp.symbols('x')
     
-    st.markdown("---")
-    st.write("### 🔍 Desglose del Procedimiento Paso a Paso")
+    try:
+        # Procesamos la entrada
+        expr_clean = u_input.replace("^", "**")
+        h = sp.sympify(expr_clean)
+        
+        # ESTA ES LA VISTA PREVIA QUE BUSCAMOS:
+        st.info("#### 👁️ Confirmación de entrada:")
+        st.write("El sistema interpretó tu función como:")
+        st.latex(f"f(x) = {sp.latex(h)}")
+        
+    except Exception as e:
+        st.error("⚠️ Error de escritura. Revisa los asteriscos (*) y paréntesis.")
+        st.stop() # Detiene la ejecución si hay error en la entrada
 
-    # --- LÓGICA DE DERIVACIÓN (Basada en tu código original) ---
+st.markdown("---")
+
+# --- BLOQUE 2: PROCESAMIENTO Y REGLAS ---
+if h:
+    st.write("### 🔍 Desglose del Procedimiento")
     
-    # 1. CASO PRODUCTO
+    # 1. IDENTIFICACIÓN DE REGLA DEL PRODUCTO
     if h.is_Mul and any(arg.has(x) for arg in h.args):
         args = [arg for arg in h.args if arg.has(x)]
         if len(args) > 1:
@@ -48,87 +44,63 @@ try:
             df = sp.diff(f, x)
             dg = sp.diff(g, x)
             
-            st.info("**Regla Aplicada:** Regla del Producto")
-            st.latex(r"[f(x) \cdot g(x)]' = f'(x)g(x) + f(x)g'(x)")
+            st.markdown("#### **Regla Aplicada: Producto**")
+            st.latex(r"\frac{d}{dx}[f(x) \cdot g(x)] = f'(x)g(x) + f(x)g'(x)")
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Componentes Identificados:**")
+            
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                st.write("**Funciones:**")
                 st.latex(f"f(x) = {sp.latex(f)}")
                 st.latex(f"g(x) = {sp.latex(g)}")
-            with col2:
-                st.write("**Derivadas Individuales:**")
+            with c2:
+                st.write("**Derivadas:**")
                 st.latex(f"f'(x) = {sp.latex(df)}")
                 st.latex(f"g'(x) = {sp.latex(dg)}")
             
-            st.write("**Ensamblaje del resultado:**")
-            st.latex(f"h'(x) = ({sp.latex(df)}) \cdot ({sp.latex(g)}) + ({sp.latex(f)}) \cdot ({sp.latex(dg)})")
+            st.write("**Ensamblaje:**")
+            st.latex(f"h'(x) = ({sp.latex(df)})({sp.latex(g)}) + ({sp.latex(f)})({sp.latex(dg)})")
 
-    # 2. CASO COCIENTE
-    elif h.is_Pow and h.exp.is_negative or sp.fraction(h)[1] != 1:
+    # 2. IDENTIFICACIÓN DE REGLA DEL COCIENTE
+    elif sp.fraction(h)[1] != 1:
         num, den = sp.fraction(h)
         f, g = num, den
         df, dg = sp.diff(f, x), sp.diff(g, x)
 
-        st.info("**Regla Aplicada:** Regla del Cociente")
-        st.latex(r"\left[\frac{f(x)}{g(x)}\right]' = \frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}")
+        st.markdown("#### **Regla Aplicada: Cociente**")
+        st.latex(r"\frac{d}{dx}\left[\frac{f(x)}{g(x)}\right] = \frac{f'(x)g(x) - f(x)g'(x)}{[g(x)]^2}")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("**Componentes Identificados:**")
+        
+
+        c1, c2 = st.columns(2)
+        with c1:
+            st.write("**Funciones:**")
             st.latex(f"f(x) = {sp.latex(f)}")
             st.latex(f"g(x) = {sp.latex(g)}")
-        with col2:
-            st.write("**Derivadas Individuales:**")
+        with c2:
+            st.write("**Derivadas:**")
             st.latex(f"f'(x) = {sp.latex(df)}")
             st.latex(f"g'(x) = {sp.latex(dg)}")
 
-        st.write("**Ensamblaje del resultado:**")
+        st.write("**Ensamblaje:**")
         st.latex(f"h'(x) = \\frac{({sp.latex(df)})({sp.latex(g)}) - ({sp.latex(f)})({sp.latex(dg)})}{({sp.latex(g)})^2}")
 
-    # 3. CASO FUNCIONES TRIGONOMÉTRICAS O EXPONENCIALES
-    elif any(func in str(h) for func in ["sin", "cos", "exp", "log", "tan"]):
-        # Obtener la función principal y su argumento
-        main_func = h.func
+    # 3. REGLAS GENERALES (SENO, COSENO, EXP)
+    elif any(func in str(h) for func in ["sin", "cos", "exp"]):
         g = h.args[0]
         dg = sp.diff(g, x)
         
-        if "exp" in str(h):
-            st.info("**Regla Aplicada:** Exponencial")
-            st.latex(r"[e^{g(x)}]' = e^{g(x)} \cdot g'(x)")
-        elif "sin" in str(h):
-            st.info("**Regla Aplicada:** Seno")
-            st.latex(r"[\sin(g(x))]' = \cos(g(x)) \cdot g'(x)")
-        elif "cos" in str(h):
-            st.info("**Regla Aplicada:** Coseno")
-            st.latex(r"[\cos(g(x))]' = -\sin(g(x)) \cdot g'(x)")
-        
-        st.write("**Identificación del Argumento Interno:**")
-        st.latex(f"g(x) = {sp.latex(g)} \implies g'(x) = {sp.latex(dg)}")
-        
-        st.write("**Aplicando la Regla de la Cadena:**")
+        st.markdown("#### **Regla Aplicada: Función Compuesta (Cadena)**")
+        st.write(f"Derivada externa de la función base con respecto a su argumento:")
         st.latex(f"h'(x) = {sp.latex(sp.diff(h, x))}")
 
-    # 4. REGLA POTENCIA / SUMA
+    # 4. POTENCIA O SUMA
     else:
-        st.info("**Regla Aplicada:** Regla de la Potencia / Suma")
-        st.write("Se deriva cada término de forma independiente:")
+        st.markdown("#### **Regla Aplicada: Potencia / Suma**")
         st.latex(f"h'(x) = {sp.latex(sp.diff(h, x))}")
 
-    # --- RESULTADO FINAL SIMPLIFICADO ---
+    # --- RESULTADO FINAL ---
+    st.markdown("---")
     st.success("### ✅ Resultado Final Simplificado")
     st.latex(f"h'(x) = {sp.latex(sp.simplify(sp.diff(h, x)))}")
-
-except Exception as e:
-    st.error("⚠️ Error de sintaxis. Asegúrate de usar '*' para multiplicar (ej. 3*x) y '**' para potencias (ej. x**2).")
-
-# --- BARRA LATERAL ---
-with st.sidebar:
-    st.header("📖 Guía Rápida del Editor")
-    st.write("Usa los siguientes comandos:")
-    st.code("Producto: x**2 * sin(x)")
-    st.code("División: (x+1) / (x-1)")
-    st.code("Potencia: x**3")
-    st.code("Trigonométricas: sin(x), cos(x), tan(x)")
-    st.markdown("---")
-    st.write("*Tutor desarrollado para la Facultad de Arquitectura.*")
