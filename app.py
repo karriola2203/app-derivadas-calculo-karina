@@ -5,7 +5,7 @@ import sympy as sp
 st.set_page_config(page_title="Tutor de Cálculo: Cátedra Arriola", layout="wide")
 
 st.title("🏛️ Tutor de Derivación Detallada")
-st.subheader("Facultad de Arquitectura | UPC")
+st.subheader("Arquitectura | UPC")
 
 # --- BARRA LATERAL ---
 with st.sidebar:
