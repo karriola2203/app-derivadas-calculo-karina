@@ -152,3 +152,48 @@ try:
 
 except Exception as e:
     st.error("Error en la lectura de la función. Revisa que uses '*' para multiplicar.")
+    # --- SECCIÓN DE EXPORTACIÓN PARA BLACKBOARD ---
+st.markdown("---")
+st.write("### 📤 Entregable para el Foro")
+
+# Creamos un resumen del desarrollo en texto para que puedan copiarlo
+resumen_texto = f"""
+DESARROLLO DE DERIVADA - CÁTEDRA ARRIOLA
+Función original: f(x) = {h}
+------------------------------------------
+Pasos realizados:
+1. Identificación de términos y estructura (Suma/Resta).
+2. Aplicación de reglas (Producto/Cociente/Formas Generales).
+3. Ensamblaje final.
+
+Resultado final: f'(x) = {sp.simplify(sp.diff(h, x))}
+"""
+
+col_down1, col_down2 = st.columns(2)
+
+with col_down1:
+    # Botón para descargar el resumen en un archivo .txt simple
+    st.download_button(
+        label="📄 Descargar Desarrollo (.txt)",
+        data=resumen_texto,
+        file_name="derivada_upc.txt",
+        mime="text/plain",
+    )
+
+with col_down2:
+    st.info("💡 **Tip para el alumno:** Presiona `Ctrl + P` (o Cmd + P en Mac) para guardar todo este desarrollo detallado como **PDF** y subirlo al Blackboard.")
+
+# CSS Opcional para que al imprimir salga limpio (sin barras laterales)
+st.markdown("""
+    <style>
+    @media print {
+        header, .stSidebar, .stActionButton, footer {
+            display: none !important;
+        }
+        .main {
+            width: 100% !important;
+            padding: 0 !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
