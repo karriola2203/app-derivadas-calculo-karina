@@ -4,21 +4,21 @@ import sympy as sp
 # Configuración de la página
 st.set_page_config(page_title="Cátedra Arriola: Tutor de Derivadas", layout="wide")
 
-# --- BARRA LATERAL (LEYENDA DE SÍMBOLOS) ---
+# --- BARRA LATERAL (GUÍA DE APOYO) ---
 with st.sidebar:
-    st.header("⌨️ Guía de Escritura")
+    st.header("⌨️ Guía para el Alumno")
     st.markdown("""
-    **Símbolos para el Estudiante:**
-    * **`*` :** Multiplicación (ej: `5*x`)
-    * **`^` :** Potencia (ej: `x^2`)
-    * **`/` :** División o Fracción (ej: `(x+1)/x`)
+    **Operadores:**
+    * `*` : Multiplicación
+    * `^` : Potencia
+    * `/` : División
     
-    **Ejemplos recomendados:**
-    * `x^2 * cos(3*x)` (Producto)
-    * `(5*x + 1) / x` (División)
-    * `5*x + sin(x/3)` (Suma + Forma General)
+    **Ejemplos para practicar:**
+    1. `(x^2 + 1) / (x - 1)`
+    2. `x^3 * sin(4*x)`
+    3. `exp(2*x) - cos(5*x)`
     """)
-    st.info("Nota: El sistema detecta automáticamente la técnica necesaria para cada término.")
+    st.info("Cada paso mostrará la fórmula aplicada antes del resultado.")
 
 st.title("🏛️ Tutor de Derivación Detallada")
 st.subheader("Facultad de Arquitectura | Profe Karina Arriola")
@@ -28,135 +28,110 @@ st.write("### ✍️ Editor de Funciones")
 col_input, col_preview = st.columns([1, 1])
 
 with col_input:
-    u_input = st.text_input("Digita tu función aquí:", value="5*x + sin(x/3)")
+    u_input = st.text_input("Ingresa tu función:", value="x^2 / sin(3*x)")
 
 x = sp.symbols('x')
 
 try:
-    # Procesamos la entrada para que acepte ^ y e^
     input_proc = u_input.replace("^", "**").replace("e**", "exp")
     h = sp.sympify(input_proc)
-    
     with col_preview:
         st.markdown("#### 👁️ Interpretación Matemática:")
         st.latex(f"f(x) = {sp.latex(h)}")
-
-except Exception as e:
-    with col_preview:
-        st.error("⚠️ Error de escritura. Revisa los asteriscos (*) o paréntesis.")
+except Exception:
+    st.error("⚠️ Error en la escritura. Revisa los asteriscos (*) y paréntesis.")
     st.stop()
 
 st.markdown("---")
 
-# --- BLOQUE 2: DESARROLLO PASO A PASO ---
+# --- BLOQUE 2: DESARROLLO PEDAGÓGICO ---
 if h:
-    st.write("### 🔍 Desarrollo del Cálculo")
+    st.write("### 🔍 Procedimiento de Derivación")
     
-    # Separamos la función en sus términos (Suma/Resta)
     terminos = sp.Add.make_args(h)
     
-    if len(terminos) > 1:
-        st.markdown("#### **Estructura Identificada: Suma / Resta**")
-        st.write("Aplicamos la propiedad de linealidad (derivamos cada término por separado):")
-        st.latex(f"f'(x) = " + " + ".join([f"\\frac{{d}}{{dx}}({sp.latex(t)})" for t in terminos]))
-        st.write("---")
-
-    resultados_parciales = []
-    
     for i, t in enumerate(terminos):
-        st.write(f"#### **Término {i+1}:**")
+        st.write(f"#### **Análisis del Término {i+1}:**")
         st.latex(f"f_{i+1}(x) = {sp.latex(t)}")
-        
-        # 1. ¿ES UN COCIENTE?
+
+        # --- CASO A: DIVISIÓN (COCIENTE) ---
         num, den = sp.fraction(t)
         if den != 1 and den.has(x):
-            st.info("📐 Técnica: Regla del Cociente")
-            st.latex(r"\left[\frac{f}{g}\right]' = \frac{f'g - fg'}{g^2}")
+            st.warning("📐 **Técnica Detectada: Regla del Cociente**")
+            st.write("Se aplica la fórmula para funciones racionales:")
+            st.latex(r"\frac{d}{dx} \left[ \frac{u}{v} \right] = \frac{u' \cdot v - u \cdot v'}{v^2}")
             
             
-            f_p, g_p = num, den
-            df_p, dg_p = sp.diff(f_p, x), sp.diff(g_p, x)
+            u, v = num, den
+            du, dv = sp.diff(u, x), sp.diff(v, x)
             
+            st.write("**Paso 1: Identificar componentes y sus derivadas:**")
             c1, c2 = st.columns(2)
             with c1:
-                st.write("**Componentes:**")
-                st.latex(f"f(x) = {sp.latex(f_p)}")
-                st.latex(f"g(x) = {sp.latex(g_p)}")
+                st.latex(f"u = {sp.latex(u)} \implies u' = {sp.latex(du)}")
             with c2:
-                st.write("**Derivadas:**")
-                st.latex(f"f'(x) = {sp.latex(df_p)}")
-                st.latex(f"g'(x) = {sp.latex(dg_p)}")
+                st.latex(f"v = {sp.latex(v)} \implies v' = {sp.latex(dv)}")
             
-            der_t = sp.diff(t, x)
-            st.write("**Ensamblaje del cociente:**")
-            st.latex(f"\\frac{{({sp.latex(df_p)})({sp.latex(g_p)}) - ({sp.latex(f_p)})({sp.latex(dg_p)})}}{{({sp.latex(g_p)})^2}}")
+            st.write("**Paso 2: Sustituir en la fórmula:**")
+            st.latex(f"\\frac{{({sp.latex(du)})({sp.latex(v)}) - ({sp.latex(u)})({sp.latex(dv)})}}{{({sp.latex(v)})^2}}")
 
-        # 2. ¿ES UN PRODUCTO?
+        # --- CASO B: PRODUCTO ---
         elif t.is_Mul and len([arg for arg in t.args if arg.has(x)]) > 1:
-            factores_x = [arg for arg in t.args if arg.has(x)]
-            constante = t.as_coefficient(sp.Mul(*factores_x))
-            
-            st.info("📐 Técnica: Regla del Producto")
-            st.latex(r"[f \cdot g]' = f'g + fg'")
+            st.warning("📐 **Técnica Detectada: Regla del Producto**")
+            st.write("Se aplica la fórmula para el producto de dos funciones:")
+            st.latex(r"\frac{d}{dx} [u \cdot v] = u' \cdot v + u \cdot v'")
             
             
-            f_p = factores_x[0]
-            g_p = sp.Mul(*factores_x[1:])
-            df_p, dg_p = sp.diff(f_p, x), sp.diff(g_p, x)
+            factores = [arg for arg in t.args if arg.has(x)]
+            u, v = factores[0], sp.Mul(*factores[1:])
+            du, dv = sp.diff(u, x), sp.diff(v, x)
             
+            st.write("**Paso 1: Identificar componentes y sus derivadas:**")
             c1, c2 = st.columns(2)
             with c1:
-                st.write("**Componentes:**")
-                st.latex(f"f(x) = {sp.latex(f_p)}")
-                st.latex(f"g(x) = {sp.latex(g_p)}")
+                st.latex(f"u = {sp.latex(u)} \implies u' = {sp.latex(du)}")
             with c2:
-                st.write("**Derivadas:**")
-                st.latex(f"f'(x) = {sp.latex(df_p)}")
-                st.latex(f"g'(x) = {sp.latex(dg_p)}")
+                st.latex(f"v = {sp.latex(v)} \implies v' = {sp.latex(dv)}")
             
-            st.write("**Ensamblaje del producto:**")
-            if constante != 1:
-                st.latex(f"{sp.latex(constante)} \\cdot [({sp.latex(df_p)})({sp.latex(g_p)}) + ({sp.latex(f_p)})({sp.latex(dg_p)})]")
-            else:
-                st.latex(f"({sp.latex(df_p)})({sp.latex(g_p)}) + ({sp.latex(f_p)})({sp.latex(dg_p)})")
+            st.write("**Paso 2: Sustituir en la fórmula:**")
+            st.latex(f"({sp.latex(du)})({sp.latex(v)}) + ({sp.latex(u)})({sp.latex(dv)})")
 
-        # 3. ¿ES UNA FORMA GENERALIZADA (sin, cos, exp)?
-        elif any(t.has(getattr(sp, name)) for name in ["sin", "cos", "exp"]):
-            func_obj = None
-            for name in ["sin", "cos", "exp"]:
-                if t.has(getattr(sp, name)): func_obj = name; break
-            
-            f_interna = list(t.atoms(sp.Function))[0] if t.atoms(sp.Function) else list(t.atoms(sp.exp))[0]
-            arg_ax = f_interna.args[0]
-            a_val = sp.diff(arg_ax, x)
-            
-            if func_obj == "sin":
-                st.info("📐 Técnica: Forma General $\sin(ax)$")
-                st.latex(r"[\sin(ax)]' = a \cdot \cos(ax)")
+        # --- CASO C: FORMAS GENERALIZADAS (SIN, COS, EXP) ---
+        elif any(t.has(getattr(sp, n)) for n in ["sin", "cos", "exp"]):
+            # Identificar cuál es
+            if t.has(sp.sin):
+                st.info("📐 **Fórmula Generalizada: Derivada del Seno**")
+                st.latex(r"\frac{d}{dx} [\sin(ax)] = a \cdot \cos(ax)")
                 
-            elif func_obj == "cos":
-                st.info("📐 Técnica: Forma General $\cos(ax)$")
-                st.latex(r"[\cos(ax)]' = -a \cdot \sin(ax)")
-            elif func_obj == "exp":
-                st.info("📐 Técnica: Forma General $e^{ax}$")
-                st.latex(r"[e^{ax}]' = a \cdot e^{ax}")
+            elif t.has(sp.cos):
+                st.info("📐 **Fórmula Generalizada: Derivada del Coseno**")
+                st.latex(r"\frac{d}{dx} [\cos(ax)] = -a \cdot \sin(ax)")
+            elif t.has(sp.exp):
+                st.info("📐 **Fórmula Generalizada: Derivada Exponencial**")
+                st.latex(r"\frac{d}{dx} [e^{ax}] = a \cdot e^{ax}")
                 
-                
-            st.write(f"Identificamos que el coeficiente $a = {sp.latex(a_val)}$")
-            st.latex(f"\\text{{Derivada: }} {sp.latex(sp.diff(t, x))}")
 
-        # 4. CASO BASE (Potencia o constante)
+            # Extraer argumento ax
+            f_obj = [f for f in t.atoms(sp.Function) if f.func.__name__.lower() in ["sin", "cos", "exp"]]
+            if not f_obj: f_obj = list(t.atoms(sp.exp))
+            arg = f_obj[0].args[0]
+            a = sp.diff(arg, x)
+            
+            st.write(f"Identificamos el coeficiente $a = {sp.latex(a)}$")
+            st.write("**Resultado del término:**")
+            st.latex(f"{sp.latex(sp.diff(t, x))}")
+
+        # --- CASO D: POTENCIA ---
         else:
-            st.info("📐 Técnica: Regla de la Potencia / Directa")
-            st.latex(f"\\text{{Derivada: }} {sp.latex(sp.diff(t, x))}")
-        
-        resultados_parciales.append(sp.diff(t, x))
-        st.write("---")
+            st.info("📐 **Técnica: Regla de la Potencia Directa**")
+            st.latex(r"\frac{d}{dx} [x^n] = n \cdot x^{n-1}")
+            
+            st.write("**Resultado del término:**")
+            st.latex(f"{sp.latex(sp.diff(t, x))}")
 
-    # --- RESULTADO FINAL ---
-    st.success("### ✅ Resultado Final Ensamblado")
-    final_res = sum(resultados_parciales)
-    st.latex(f"f'(x) = {sp.latex(final_res)}")
-    
-    st.write("**Resultado Simplificado:**")
-    st.latex(f"f'(x) = {sp.latex(sp.simplify(final_res))}")
+        st.markdown("---")
+
+    # --- CIERRE: RESULTADO FINAL ---
+    st.success("### ✅ Resultado Final Simplificado")
+    st.write("Uniendo y simplificando todos los pasos anteriores:")
+    st.latex(f"f'(x) = {sp.latex(sp.simplify(sp.diff(h, x)))}")
