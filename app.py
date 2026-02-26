@@ -14,7 +14,7 @@ with st.sidebar:
     * **Multiplicación:** `5*x`
     * **Potencia:** `x^2`
     * **División:** `(x+1)/x`
-    * **Ejemplo:** `x^2 - sin(3*x)`
+    * **Resta:** `x^2 - 5*x`
     """)
 
 # --- BLOQUE 1: ENTRADA ---
@@ -23,127 +23,132 @@ u_input = st.text_input("Ingresa la función a derivar:", value="x^2 - sin(3*x)"
 x = sp.symbols('x')
 
 try:
+    # Pre-procesamiento
     input_proc = u_input.replace("^", "**").replace("e**", "exp")
     h = sp.sympify(input_proc)
     
-    st.info("#### 👁️ Vista Previa:")
+    st.info("#### 👁️ Vista Previa del Alumno:")
     st.latex(f"f(x) = {sp.latex(h)}")
     st.markdown("---")
 
-    # --- PASO 1: IDENTIFICAR ESTRUCTURA (SUMA O RESTA) ---
-    terminos = sp.Add.make_args(h)
+    # --- PASO 1: IDENTIFICAR TÉRMINOS Y OPERADORES ---
+    # Separamos los términos
+    raw_terminos = sp.Add.make_args(h)
     
-    st.write(f"### 🔍 Paso 1: Análisis de estructura")
-    
-    # Determinar si es suma, resta o ambas
-    tiene_positivos = any(t.as_coeff_Mul()[0] > 0 for t in terminos)
-    tiene_negativos = any(t.as_coeff_Mul()[0] < 0 for t in terminos)
-    
-    if tiene_positivos and tiene_negativos:
-        st.write("La función presenta **sumas y restas**. Aplicamos la regla de linealidad:")
-        st.latex(r"\frac{d}{dx}[f(x) \pm g(x)] = \frac{d}{dx}f(x) \pm \frac{d}{dx}g(x)")
-    elif tiene_negativos:
-        st.write("La estructura principal es una **resta**. Aplicamos la regla:")
-        st.latex(r"\frac{d}{dx}[f(x) - g(x)] = \frac{d}{dx}f(x) - \frac{d}{dx}g(x)")
-    else:
-        st.write("La estructura principal es una **suma**. Aplicamos la regla:")
-        st.latex(r"\frac{d}{dx}[f(x) + g(x)] = \frac{d}{dx}f(x) + \frac{d}{dx}g(x)")
+    # Creamos una lista de términos positivos y sus signos correspondientes
+    lista_analisis = []
+    for t in raw_terminos:
+        coeff, expr = t.as_coeff_Mul()
+        if coeff < 0:
+            lista_analisis.append({"expr": -t, "signo": "-"})
+        else:
+            lista_analisis.append({"expr": t, "signo": "+"})
 
-    # --- PASO 2: DESGLOSE POR TÉRMINO ---
-    resultados_parciales = []
+    st.write(f"### 🔍 Paso 1: Identificación de Operaciones")
+    st.write(f"La función tiene **{len(lista_analisis)} términos**.")
+    
+    # Mostrar la regla de Suma/Resta pura
+    formula_visual = "f'(x) = "
+    for i, item in enumerate(lista_analisis):
+        operador = item['signo'] if i > 0 else ("-" if item['signo'] == "-" else "")
+        formula_visual += f" {operador} \\frac{{d}}{{dx}}({sp.latex(item['expr'])})"
+    
+    st.latex(formula_visual)
+    
+    st.write("---")
 
-    for i, t in enumerate(terminos):
-        # Extraer el signo y la expresión positiva para explicar la técnica
-        coeff, expr_base = t.as_coeff_Mul()
-        signo_texto = "Positivo (+)" if coeff > 0 else "Negativo (-)"
-        t_abs = t if coeff > 0 else -t
+    # --- PASO 2: DESGLOSE TÉRMINO POR TÉRMINO (SIEMPRE POSITIVOS) ---
+    derivadas_finales = []
+
+    for i, item in enumerate(lista_analisis):
+        t_pos = item['expr']
+        sig = item['signo']
         
-        st.write(f"---")
-        st.write(f"### 📝 Analizando Término {i+1} ({signo_texto}):")
-        st.latex(f"{sp.latex(t)}")
+        st.write(f"### 📝 Derivando Término {i+1}:")
+        st.latex(f"u_{i+1} = {sp.latex(t_pos)}")
 
-        # --- A. DETECTAR COCIENTE ---
-        num, den = sp.fraction(t_abs)
+        # --- CLASIFICACIÓN TÉCNICA ---
+        # 1. COCIENTE
+        num, den = sp.fraction(t_pos)
         if den != 1 and den.has(x):
             st.warning("**Técnica: Regla del Cociente**")
             st.latex(r"\frac{d}{dx}\left[\frac{u}{v}\right] = \frac{u'v - uv'}{v^2}")
+            
             u, v = num, den
             du, dv = sp.diff(u, x), sp.diff(v, x)
             
-            c1, c2 = st.columns(2)
+            c1, col2 = st.columns(2)
             with c1:
-                st.write("**Identificar:**")
+                st.write("**Componentes:**")
                 st.latex(f"u = {sp.latex(u)}, v = {sp.latex(v)}")
-            with c2:
-                st.write("**Derivar:**")
+            with col2:
+                st.write("**Derivadas:**")
                 st.latex(f"u' = {sp.latex(du)}, v' = {sp.latex(dv)}")
             
-            der_paso = (du*v - u*dv)/(v**2)
+            der_calculada = (du*v - u*dv)/(v**2)
 
-        # --- B. DETECTAR PRODUCTO ---
-        elif t_abs.is_Mul and len([a for a in t_abs.args if arg.has(x) for arg in [a]]) > 1:
+        # 2. PRODUCTO
+        elif t_pos.is_Mul and len([a for a in t_pos.args if a.has(x)]) > 1:
             st.warning("**Técnica: Regla del Producto**")
             st.latex(r"\frac{d}{dx}[u \cdot v] = u'v + uv'")
             
-            factores = [a for a in t_abs.args if a.has(x)]
-            constante = t_abs.as_coefficient(sp.Mul(*factores))
+            factores = [a for a in t_pos.args if a.has(x)]
+            constante = t_pos.as_coefficient(sp.Mul(*factores))
             u, v = factores[0], sp.Mul(*factores[1:])
             du, dv = sp.diff(u, x), sp.diff(v, x)
 
-            c1, c2 = st.columns(2)
+            c1, col2 = st.columns(2)
             with c1:
-                st.write("**Identificar:**")
+                st.write("**Componentes:**")
                 st.latex(f"u = {sp.latex(u)}, v = {sp.latex(v)}")
-            with c2:
-                st.write("**Derivar:**")
+            with col2:
+                st.write("**Derivadas:**")
                 st.latex(f"u' = {sp.latex(du)}, v' = {sp.latex(dv)}")
             
-            der_paso = (du*v + u*dv) * constante
+            der_calculada = (du*v + u*dv) * constante
 
-        # --- C. FORMAS GENERALIZADAS ---
-        elif any(t_abs.has(getattr(sp, f)) for f in ["sin", "cos", "exp"]):
-            if t_abs.has(sp.sin):
+        # 3. FORMAS GENERALIZADAS
+        elif any(t_pos.has(getattr(sp, f)) for f in ["sin", "cos", "exp"]):
+            if t_pos.has(sp.sin):
                 st.info("**Técnica: Forma General del Seno**")
                 st.latex(r"\frac{d}{dx}[\sin(ax)] = a \cdot \cos(ax)")
-            elif t_abs.has(sp.cos):
+                
+            elif t_pos.has(sp.cos):
                 st.info("**Técnica: Forma General del Coseno**")
                 st.latex(r"\frac{d}{dx}[\cos(ax)] = -a \cdot \sin(ax)")
-            elif t_abs.has(sp.exp):
+            elif t_pos.has(sp.exp):
                 st.info("**Técnica: Forma General Exponencial**")
                 st.latex(r"\frac{d}{dx}[e^{ax}] = a \cdot e^{ax}")
+                
 
-            # Extraer 'a'
-            f_interna = list(t_abs.atoms(sp.Function))[0] if t_abs.atoms(sp.Function) else list(t_abs.atoms(sp.exp))[0]
+            f_interna = list(t_pos.atoms(sp.Function))[0] if t_pos.atoms(sp.Function) else list(t_pos.atoms(sp.exp))[0]
             a = sp.diff(f_interna.args[0], x)
             st.write(f"Donde el coeficiente interno es $a = {sp.latex(a)}$")
-            der_paso = sp.diff(t_abs, x)
+            der_calculada = sp.diff(t_pos, x)
 
-        # --- D. POTENCIA ---
+        # 4. POTENCIA
         else:
             st.info("**Técnica: Regla de la Potencia**")
             st.latex(r"\frac{d}{dx}[x^n] = n \cdot x^{n-1}")
-            der_paso = sp.diff(t_abs, x)
-
-        # Mostrar resultado del término manteniendo el signo
-        st.write("**Resultado de este término:**")
-        if coeff < 0:
-            st.latex(f"- ({sp.latex(der_paso)})")
-        else:
-            st.latex(f"{sp.latex(der_paso)}")
             
-        resultados_parciales.append(sp.diff(t, x))
+            der_calculada = sp.diff(t_pos, x)
 
-    # --- RESULTADO FINAL ---
-    st.markdown("---")
-    st.success("### ✅ Paso Final: Resultado Ensamblado")
-    res_final = sum(resultados_parciales)
+        st.write(f"Resultado de derivar el término {i+1}:")
+        st.latex(f"{sp.latex(der_calculada)}")
+        
+        # Guardamos la derivada multiplicada por su signo original para el ensamble
+        derivadas_finales.append(der_calculada if sig == "+" else -der_calculada)
+        st.write("---")
+
+    # --- PASO 3: ENSAMBLAJE FINAL ---
+    st.success("### ✅ Paso Final: Ensamblaje según Suma/Resta")
+    st.write("Unimos los resultados respetando los signos de la función original:")
     
-    # Construcción visual de la suma/resta final
-    st.write("Uniendo los términos según sus signos originales:")
+    res_final = sum(derivadas_finales)
     st.latex(f"f'(x) = {sp.latex(res_final)}")
     
-    st.write("**Resultado Simplificado:**")
+    st.write("**Resultado Simplificado Final:**")
     st.latex(f"f'(x) = {sp.latex(sp.simplify(res_final))}")
 
 except Exception as e:
-    st.error(f"Error: Asegúrate de usar '*' para multiplicar (ej: 5*x).")
+    st.error("Error en la lectura de la función. Revisa que uses '*' para multiplicar.")
