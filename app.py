@@ -152,48 +152,45 @@ try:
 
 except Exception as e:
     st.error("Error en la lectura de la función. Revisa que uses '*' para multiplicar.")
-    # --- SECCIÓN DE EXPORTACIÓN PARA BLACKBOARD ---
+   # --- SECCIÓN DE EXPORTACIÓN PARA FORO BLACKBOARD UPC ---
 st.markdown("---")
-st.write("### 📤 Entregable para el Foro")
+st.write("### 🎓 Formato para Entrega en Foro")
 
-# Creamos un resumen del desarrollo en texto para que puedan copiarlo
-resumen_texto = f"""
-DESARROLLO DE DERIVADA - CÁTEDRA ARRIOLA
-Función original: f(x) = {h}
-------------------------------------------
-Pasos realizados:
-1. Identificación de términos y estructura (Suma/Resta).
-2. Aplicación de reglas (Producto/Cociente/Formas Generales).
-3. Ensamblaje final.
-
-Resultado final: f'(x) = {sp.simplify(sp.diff(h, x))}
+# Generamos un texto estructurado que no se corta
+desarrollo_completo = f"""INFORME DE DERIVACIÓN - CÁTEDRA ARRIOLA
+--------------------------------------------------
+FUNCIÓN ORIGINAL: f(x) = {h}
+--------------------------------------------------
+DESARROLLO PASO A PASO:
 """
 
-col_down1, col_down2 = st.columns(2)
+for i, t in enumerate(terminos):
+    coeff, _ = t.as_coeff_Mul()
+    op = "Resta" if coeff < 0 else "Suma"
+    desarrollo_completo += f"\n> Término {i+1} ({op}): {sp.latex(t)}"
+    desarrollo_completo += f"\n  Derivada parcial: {sp.latex(sp.diff(t, x))}\n"
 
-with col_down1:
-    # Botón para descargar el resumen en un archivo .txt simple
-    st.download_button(
-        label="📄 Descargar Desarrollo (.txt)",
-        data=resumen_texto,
-        file_name="derivada_upc.txt",
-        mime="text/plain",
-    )
+desarrollo_completo += f"""
+--------------------------------------------------
+RESULTADO FINAL:
+f'(x) = {sp.latex(sp.diff(h, x))}
 
-with col_down2:
-    st.info("💡 **Tip para el alumno:** Presiona `Ctrl + P` (o Cmd + P en Mac) para guardar todo este desarrollo detallado como **PDF** y subirlo al Blackboard.")
+SIMPLIFICACIÓN:
+f'(x) = {sp.latex(sp.simplify(sp.diff(h, x)))}
+--------------------------------------------------
+Generado por: Tutor de Cálculo - Facultad de Arquitectura UPC
+"""
 
-# CSS Opcional para que al imprimir salga limpio (sin barras laterales)
-st.markdown("""
-    <style>
-    @media print {
-        header, .stSidebar, .stActionButton, footer {
-            display: none !important;
-        }
-        .main {
-            width: 100% !important;
-            padding: 0 !important;
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# Mostramos el desarrollo en un área de texto que el alumno puede copiar fácilmente
+st.text_area("Copia el contenido de este cuadro para pegarlo en tu foro:", 
+             value=desarrollo_completo, height=300)
+
+st.success("☝️ **Instrucción para el alumno:** Selecciona todo el texto del cuadro de arriba, cópialo y pégalo directamente en el Foro de Blackboard. Esto asegura que la Profe Karina reciba tu proceso completo sin recortes.")
+
+# Botón de descarga corregido para que no pese y contenga TODO
+st.download_button(
+    label="📥 Descargar Reporte Completo (.txt)",
+    data=desarrollo_completo,
+    file_name="entrega_derivadas_upc.txt",
+    mime="text/plain"
+)
